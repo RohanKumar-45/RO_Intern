@@ -13,6 +13,7 @@ import {
   users,
 } from "../appwrite.config";
 import { parseStringify } from "../utils";
+import { Patient } from "@/types/appwrite.types";
 
 // CREATE APPWRITE USER
 export const createUser = async (user: CreateUserParams) => {
@@ -110,3 +111,25 @@ export const getPatient = async (userId: string) => {
     );
   }
 };
+
+
+
+
+export const getPatientDetails = async (userId: string): Promise<Patient | null> => {
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID!,
+      PATIENT_COLLECTION_ID!,
+      [Query.equal("userId", userId)]
+    );
+
+    if (response.documents.length === 0) {
+      return null; // Return null if no documents are found
+    }
+
+    return parseStringify(response.documents[0] as Patient); // Assuming there is only one patient per userId
+  } catch (error) {
+    console.error("An error occurred while retrieving patient details:", error);
+    return null; // Return null in case of error
+  }
+};;

@@ -1,19 +1,20 @@
 import Image from "next/image";
-
 import { Button } from "./ui/button";
 
 interface ButtonProps {
   isLoading: boolean;
   className?: string;
   children: React.ReactNode;
+  onClick?: () => void; // Add onClick prop for callback function
 }
 
-const SubmitButton = ({ isLoading, className, children }: ButtonProps) => {
+const SubmitButton = ({ isLoading, className, children, onClick }: ButtonProps) => {
   return (
     <Button
       type="submit"
       disabled={isLoading}
       className={className ?? "shad-primary-btn w-full"}
+      onClick={onClick} // Call the onClick function when the button is clicked
     >
       {isLoading ? (
         <div className="flex items-center gap-4">

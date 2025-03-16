@@ -12,6 +12,7 @@ import { Doctors } from "@/constants";
 import {
   createAppointment,
   updateAppointment,
+  getAppointmentHistory,
 } from "@/lib/actions/appointment.actions";
 import { getAppointmentSchema } from "@/lib/validation";
 import { Appointment } from "@/types/appwrite.types";
@@ -21,6 +22,13 @@ import "react-datepicker/dist/react-datepicker.css";
 import CustomFormField, { FormFieldType } from "../CustomFormField";
 import SubmitButton from "../SubmitButton";
 import { Form } from "../ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog"; 
 
 export const AppointmentForm = ({
   userId,
@@ -37,15 +45,17 @@ export const AppointmentForm = ({
 }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isHistoryVisible, setIsHistoryVisible] = useState(false);
+  const [appointmentHistory, setAppointmentHistory] = useState<Appointment[]>([]);
 
   const AppointmentFormValidation = getAppointmentSchema(type);
 
   const form = useForm<z.infer<typeof AppointmentFormValidation>>({
     resolver: zodResolver(AppointmentFormValidation),
     defaultValues: {
-      primaryPhysician: appointment ? appointment?.primaryPhysician : "",
+      primaryPhysician: appointment ? appointment.primaryPhysician : "",
       schedule: appointment
-        ? new Date(appointment?.schedule!)
+        ? new Date(appointment.schedule!)
         : new Date(Date.now()),
       reason: appointment ? appointment.reason : "",
       note: appointment?.note || "",
@@ -116,6 +126,16 @@ export const AppointmentForm = ({
     setIsLoading(false);
   };
 
+  const handleViewHistory = async () => {
+    try {
+      const history = await getAppointmentHistory(patientId);
+      setAppointmentHistory(history);
+      setIsHistoryVisible(true);
+    } catch (error) {
+      console.error("Failed to fetch appointment history:", error);
+    }
+  };
+
   let buttonLabel;
   switch (type) {
     case "cancel":
@@ -125,7 +145,7 @@ export const AppointmentForm = ({
       buttonLabel = "Schedule Appointment";
       break;
     default:
-      buttonLabel = "Submit Apppointment";
+      buttonLabel = "Submit Appointment";
   }
 
   return (
@@ -175,14 +195,16 @@ export const AppointmentForm = ({
             />
 
             <div
-              className={`flex flex-col gap-6  ${type === "create" && "xl:flex-row"}`}
+              className={`flex flex-col gap-6  ${
+                type === "create" && "xl:flex-row"
+              }`}
             >
               <CustomFormField
                 fieldType={FormFieldType.TEXTAREA}
                 control={form.control}
                 name="reason"
                 label="Appointment reason"
-                placeholder="Annual montly check-up"
+                placeholder="Annual monthly check-up"
                 disabled={type === "schedule"}
               />
 
@@ -210,11 +232,17 @@ export const AppointmentForm = ({
 
         <SubmitButton
           isLoading={isLoading}
-          className={`${type === "cancel" ? "shad-danger-btn" : "shad-primary-btn"} w-full`}
+          className={`${
+            type === "cancel" ? "shad-danger-btn" : "shad-primary-btn"
+          } w-full`}
         >
           {buttonLabel}
         </SubmitButton>
       </form>
+
+      
     </Form>
   );
 };
+
+export default AppointmentForm;

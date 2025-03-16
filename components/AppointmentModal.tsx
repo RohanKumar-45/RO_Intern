@@ -1,7 +1,8 @@
+// components/AppointmentModal.tsx
+
 "use client";
 
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,54 +10,78 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Appointment } from "@/types/appwrite.types";
+import { getPatientAppointments } from "@/lib/actions/appointment.actions";
 
-import { AppointmentForm } from "./forms/AppointmentForm";
-
-import "react-datepicker/dist/react-datepicker.css";
+interface AppointmentModalProps {
+  patientId: string;
+  userId: string;
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description: string;
+  onConfirm?: () => void; // Optional confirm action for scheduling or canceling
+}
 
 export const AppointmentModal = ({
   patientId,
   userId,
-  appointment,
-  type,
-}: {
-  patientId: string;
-  userId: string;
-  appointment?: Appointment;
-  type: "schedule" | "cancel";
-  title: string;
-  description: string;
-}) => {
-  const [open, setOpen] = useState(false);
+  open,
+  onClose,
+  title,
+  description,
+  onConfirm,
+}: AppointmentModalProps) => {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+
+  useEffect(() => {
+    if (open && !onConfirm) { // Fetch history only if not for scheduling/canceling
+      getPatientAppointments(userId)
+        .then((data) => {
+          if (data && !data.error) {
+            setAppointments(data);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to fetch appointment history:", error);
+        });
+    }
+  }, [open, userId, onConfirm]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          className={`capitalize ${type === "schedule" && "text-green-500"}`}
-        >
-          {type}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="shad-dialog sm:max-w-md">
         <DialogHeader className="mb-4 space-y-3">
-          <DialogTitle className="capitalize">{type} Appointment</DialogTitle>
-          <DialogDescription>
-            Please fill in the following details to {type} appointment
-          </DialogDescription>
+          <DialogTitle className="capitalize">{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <AppointmentForm
-          userId={userId}
-          patientId={patientId}
-          type={type}
-          appointment={appointment}
-          setOpen={setOpen}
-        />
+        {appointments.length > 0 && !onConfirm ? (
+          appointments.map((appointment) => (
+            <div key={appointment.$id} className="mb-2 p-2 border-b">
+              <p>
+                    <strong>Doctor:</strong> {appointment.primaryPhysician}
+              </p>
+              <p>
+                <strong>Date:</strong>{" "}
+                {new Date(appointment.$createdAt).toLocaleDateString()}
+              </p>
+              <p>
+                    <strong>Reason:</strong> {appointment.reason}
+                  </p>
+              <p>
+                <strong>Status:</strong> {appointment.status || "N/A"}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p>No past appointments found.</p>
+        )}
+
+        {onConfirm && (
+          <Button onClick={onConfirm}>Confirm</Button> // Show confirm button only if onConfirm is provided
+        )}
       </DialogContent>
     </Dialog>
   );
